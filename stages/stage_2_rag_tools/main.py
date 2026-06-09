@@ -23,6 +23,16 @@ from common.llm import get_llm
 
 LEGAL_KNOWLEDGE = [
     {
+        "id": "labor_law",
+        "keywords": ["lao động", "sa thải", "hợp đồng lao động", "labor", "termination"],
+        "text": (
+            "Theo Bộ luật Lao động Việt Nam 2019, người sử dụng lao động có thể "
+            "đơn phương chấm dứt hợp đồng trong các trường hợp: (1) người lao động "
+            "thường xuyên không hoàn thành công việc; (2) bị ốm đau, tai nạn đã điều trị "
+            "12 tháng chưa khỏi; (3) thiên tai, hỏa hoạn; (4) người lao động đủ tuổi nghỉ hưu."
+        ),
+    },
+    {
         "id": "ucc_breach",
         "keywords": ["breach", "contract", "remedies", "damages", "ucc"],
         "text": (
@@ -134,10 +144,23 @@ def calculate_damages(breach_type: str, contract_value: float) -> str:
         f"  Total estimated exposure: ${total:,.2f}"
     )
 
+@tool
+def check_statute_of_limitations(case_type: str) -> str:
+    """Kiểm tra thời hiệu khởi kiện theo loại vụ án.
+    
+    Args:
+        case_type: Loại vụ án (contract, tort, property)
+    """
+    limits = {
+        "contract": "4 năm (UCC § 2-725)",
+        "tort": "2-3 năm tùy bang",
+        "property": "5 năm",
+    }
+    return limits.get(case_type.lower(), "Không xác định")
 
-TOOLS = [search_legal_database, calculate_damages]
+TOOLS = [search_legal_database, calculate_damages, check_statute_of_limitations]
 
-QUESTION = "What are the legal consequences if a company breaches a non-disclosure agreement?"
+QUESTION = "Những hậu quả pháp lý và thời gian hiệu lực theo loại vụ án nào có thể xảy ra nếu một công ty vi phạm thỏa thuận bảo mật (NDA)?"
 
 
 async def main():

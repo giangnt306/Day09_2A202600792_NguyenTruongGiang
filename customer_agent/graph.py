@@ -15,9 +15,14 @@ import logging
 from typing import Any
 
 from langchain_core.tools import tool
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 
 from common.llm import get_llm
+
+# Shared in-process memory store — keyed by thread_id (= context_id).
+# Persists as long as the customer agent process is alive.
+_memory = MemorySaver()
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +35,11 @@ legal services platform. Your job is to:
 3. If so, use the `delegate_to_legal_agent` tool to send it to the Law Agent,
    which will coordinate specialist sub-agents (Tax and Compliance) as needed
 4. Present the comprehensive response clearly to the user
+
+You have access to the full conversation history. When the user asks a follow-up
+question, reference prior exchanges so the response is contextually coherent.
+If a follow-up clearly builds on a previous question, include that context when
+calling `delegate_to_legal_agent` so the Law Agent can provide a more relevant answer.
 
 Always use the `delegate_to_legal_agent` tool for any substantive legal question.
 Do not attempt to answer complex legal questions from your own knowledge alone.
@@ -92,5 +102,6 @@ def build_graph(trace_id: str, context_id: str, depth: int) -> Any:
         model=llm,
         tools=[delegate_to_legal_agent],
         prompt=CUSTOMER_SYSTEM_PROMPT,
+        checkpointer=_memory,
     )
     return graph
